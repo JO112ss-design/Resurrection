@@ -1,0 +1,29 @@
+{
+	"schemaVersion": 1,
+	"id": "resurrection",
+	"version": "${version}",
+	"name": "Resurrection",
+	"description": "When a player dies they go down instead, glowing where they fell. Another player can crouch beside them for 10 seconds and spend 20 XP levels to revive them. After 180 seconds without help, they die.",
+	"authors": [
+		"JO112ss-design"
+	],
+	"contact": {
+		"sources": "https://github.com/JO112ss-design/Resurrection"
+	},
+	"icon": "assets/resurrection/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"io.github.jo112ss.resurrection.Resurrection"
+		]
+	},
+	"mixins": [
+		"resurrection.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~26.3",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}

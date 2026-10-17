@@ -1,0 +1,9 @@
+{
+	"resurrection.downed.broadcast": "%s is down! Revive them within %s seconds",
+	"resurrection.downed.status": "Downed… %ss left (a teammate can crouch beside you to revive)",
+	"resurrection.downed.being_revived": "%s is reviving you… %s",
+	"resurrection.revive.progress": "Reviving %s… %s",
+	"resurrection.revive.hint": "Keep crouching to revive %s (costs %s XP levels)",
+	"resurrection.revive.not_enough_xp": "Not enough XP (%s levels needed)",
+	"resurrection.revive.success": "%s was revived by %s!"
+}
