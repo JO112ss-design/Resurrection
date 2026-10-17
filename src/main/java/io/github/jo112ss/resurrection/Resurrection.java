@@ -1,72 +1,87 @@
 package io.github.jo112ss.resurrection;
 
-import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
-import net.fabricmc.fabric.api.attachment.v1.AttachmentSyncPredicate;
-import net.fabricmc.fabric.api.attachment.v1.AttachmentTarget;
-import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
-import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
-import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
-import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
-import net.fabricmc.fabric.api.event.player.UseBlockCallback;
-import net.fabricmc.fabric.api.event.player.UseEntityCallback;
-import net.fabricmc.fabric.api.event.player.UseItemCallback;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import java.util.function.Supplier;
+
+import com.mojang.logging.LogUtils;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
+import net.neoforged.bus.api.ICancellableEvent;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.neoforge.attachment.AttachmentType;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
+import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
+import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.neoforged.neoforge.registries.DeferredRegister;
+import net.neoforged.neoforge.registries.NeoForgeRegistries;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class Resurrection implements ModInitializer {
+@Mod(Resurrection.MOD_ID)
+public class Resurrection {
 	public static final String MOD_ID = "resurrection";
-	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+	public static final Logger LOGGER = LogUtils.getLogger();
+
+	private static final DeferredRegister<AttachmentType<?>> ATTACHMENT_TYPES =
+			DeferredRegister.create(NeoForgeRegistries.ATTACHMENT_TYPES, MOD_ID);
 
 	/** Synced to every client so the downed pose can be applied on both sides. */
-	public static final AttachmentType<Boolean> DOWNED = AttachmentRegistry.create(
-			id("downed"),
-			builder -> builder.syncWith(ByteBufCodecs.BOOL, AttachmentSyncPredicate.all()));
+	public static final Supplier<AttachmentType<Boolean>> DOWNED = ATTACHMENT_TYPES.register("downed",
+			() -> AttachmentType.builder(() -> false).sync(ByteBufCodecs.BOOL).build());
+
+	public Resurrection(IEventBus modEventBus, ModContainer modContainer) {
+		ATTACHMENT_TYPES.register(modEventBus);
+
+		IEventBus bus = NeoForge.EVENT_BUS;
+		bus.addListener(Resurrection::onDeath);
+		bus.addListener(Resurrection::onIncomingDamage);
+		bus.addListener((ServerTickEvent.Post event) -> DownedManager.tick(event.getServer()));
+		bus.addListener((PlayerEvent.PlayerLoggedOutEvent event) -> {
+			if (event.getEntity() instanceof ServerPlayer player) {
+				DownedManager.onDisconnect(player, player.level().getServer());
+			}
+		});
+		bus.addListener((ServerStoppedEvent event) -> DownedManager.clearAll());
+
+		// Downed players cannot fight, build or use items. These fire on both sides,
+		// and the attachment is synced, so the client doesn't even try.
+		bus.addListener((AttackEntityEvent event) -> block(event.getEntity(), event));
+		bus.addListener((PlayerInteractEvent.EntityInteract event) -> block(event.getEntity(), event));
+		bus.addListener((PlayerInteractEvent.RightClickItem event) -> block(event.getEntity(), event));
+		bus.addListener((PlayerInteractEvent.RightClickBlock event) -> block(event.getEntity(), event));
+		bus.addListener((PlayerInteractEvent.LeftClickBlock event) -> block(event.getEntity(), event));
+	}
 
 	public static Identifier id(String path) {
 		return Identifier.fromNamespaceAndPath(MOD_ID, path);
 	}
 
 	public static boolean isDowned(Player player) {
-		return Boolean.TRUE.equals(((AttachmentTarget) player).getAttached(DOWNED));
+		return player.hasData(DOWNED) && player.getData(DOWNED);
 	}
 
-	@Override
-	public void onInitialize() {
-		ServerLivingEntityEvents.ALLOW_DEATH.register((entity, source, amount) ->
-				!(entity instanceof ServerPlayer player) || DownedManager.onLethalDamage(player, source));
-
-		ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) ->
-				!(entity instanceof ServerPlayer player) || DownedManager.allowDamage(player, source));
-
-		ServerTickEvents.END_SERVER_TICK.register(DownedManager::tick);
-
-		ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
-				DownedManager.onDisconnect(handler.player, server));
-		ServerLifecycleEvents.SERVER_STOPPED.register(server -> DownedManager.clearAll());
-
-		// Downed players cannot fight, build or use items. These fire on both sides,
-		// and the attachment is synced, so the client doesn't even try.
-		AttackEntityCallback.EVENT.register((player, level, hand, entity, hit) -> block(player));
-		UseEntityCallback.EVENT.register((player, level, hand, entity, hit) -> block(player));
-		UseItemCallback.EVENT.register((player, level, hand) -> block(player));
-		UseBlockCallback.EVENT.register((player, level, hand, hit) -> block(player));
-		AttackBlockCallback.EVENT.register((player, level, hand, pos, direction) -> block(player));
-		PlayerBlockBreakEvents.BEFORE.register((level, player, pos, state, blockEntity) -> !isDowned(player));
-
-		LOGGER.info("Resurrection loaded");
+	private static void onDeath(LivingDeathEvent event) {
+		if (event.getEntity() instanceof ServerPlayer player && !DownedManager.onLethalDamage(player, event.getSource())) {
+			event.setCanceled(true);
+		}
 	}
 
-	private static InteractionResult block(Player player) {
-		return isDowned(player) ? InteractionResult.FAIL : InteractionResult.PASS;
+	private static void onIncomingDamage(LivingIncomingDamageEvent event) {
+		if (event.getEntity() instanceof ServerPlayer player && !DownedManager.allowDamage(player, event.getSource())) {
+			event.setCanceled(true);
+		}
+	}
+
+	private static void block(Player player, ICancellableEvent event) {
+		if (isDowned(player)) {
+			event.setCanceled(true);
+		}
 	}
 }

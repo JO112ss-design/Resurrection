@@ -1,5 +1,5 @@
-# Temporary: prints Minecraft API signatures needed during development. Safe to delete.
-name: inspect-api
+# Temporary dev helper: builds and pushes the build log to the ci-output branch. Safe to delete.
+name: dev-build-log
 on: [workflow_dispatch]
 permissions:
   contents: write
@@ -12,47 +12,13 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           java-version: '25'
-          distribution: 'microsoft'
+          distribution: 'temurin'
       - name: build
         run: chmod +x ./gradlew && (./gradlew --no-configuration-cache build 2>&1 || true) | tee /tmp/build.log
-      - name: dump signatures
-        run: |
-          exec > >(tee /tmp/sig.log) 2>&1
-          find ~/.gradle "$GITHUB_WORKSPACE/.gradle" -name '*.jar' 2>/dev/null | grep -iE 'minecraft' | grep -viE 'sources|launchwrapper' | xargs -r ls -la
-          JAR=$(find ~/.gradle "$GITHUB_WORKSPACE/.gradle" -name '*.jar' 2>/dev/null | grep -iE 'minecraft-(common|merged)' | grep -v sources | head -1)
-          [ -z "$JAR" ] && JAR=$(find ~/.gradle "$GITHUB_WORKSPACE/.gradle" -name '*.jar' 2>/dev/null | grep -iE 'minecraft' | grep -v sources | xargs ls -S | head -1)
-          echo "JAR=$JAR"
-          CP="$JAR"
-          sig() { echo "##### $1"; javap -cp "$CP" -p "$1" | grep -iE "$2" | head -${3:-80}; }
-          sig net.minecraft.world.entity.player.Player 'pose|experience|crouch|shift|displayClientMessage|abilities|isCreative|isSpectator|giveExperience|totalExperience' 120
-          sig net.minecraft.world.entity.Entity 'setPose|getPose|glowing|level\(\)|distanceTo|isShiftKeyDown|isCrouching|position\(\)|getX\(\)|getUUID|setDeltaMovement|getName\(\)|getDisplayName' 80
-          sig net.minecraft.world.entity.LivingEntity 'setHealth|getMaxHealth| die\(|getAttribute\(|getItemInHand|checkTotem|isDeadOrDying|removeAllEffects|addEffect|deathTime|hurtTime|stopUsingItem|setSprinting' 80
-          sig net.minecraft.server.level.ServerPlayer 'level\(\)|sendSystemMessage|displayClientMessage|serverLevel|getServer|server|isSpectator|isCreative|gameMode|connection|sendOverlay|setGameMode' 80
-          sig net.minecraft.server.level.ServerLevel 'sendParticles|playSound|getServer|players\(\)' 40
-          sig net.minecraft.world.level.Level 'playSound|isClientSide|players\(\)' 40
-          sig net.minecraft.server.MinecraftServer 'getPlayerList|getPlayerCount' 10
-          sig net.minecraft.server.players.PlayerList 'getPlayers|getPlayer\(|broadcastSystemMessage|getPlayerCount' 20
-          sig net.minecraft.sounds.SoundEvents 'TOTEM|LEVELUP|BEACON|AMETHYST|ENCHANTMENT_TABLE|RESPAWN_ANCHOR' 40
-          sig net.minecraft.core.particles.ParticleTypes 'ENCHANT|TOTEM|HAPPY|SOUL|END_ROD|GLOW' 30
-          sig net.minecraft.world.entity.ai.attributes.Attributes 'MOVEMENT_SPEED|JUMP' 10
-          javap -cp "$CP" -p net.minecraft.world.entity.ai.attributes.AttributeInstance | grep -iE 'modifier' | head -30
-          javap -cp "$CP" -p 'net.minecraft.world.entity.ai.attributes.AttributeModifier' | head -30
-          javap -cp "$CP" -p 'net.minecraft.world.entity.ai.attributes.AttributeModifier$Operation' | head -20
-          sig net.minecraft.core.component.DataComponents 'DEATH_PROTECTION' 5
-          sig net.minecraft.world.item.ItemStack ' has\(| is\(' 10
-          sig net.minecraft.network.chat.Component 'literal|translatable|empty' 20
-          sig net.minecraft.network.chat.MutableComponent 'withStyle|append' 20
-          sig net.minecraft.network.codec.ByteBufCodecs 'BOOL|VAR_INT|FLOAT' 10
-          sig net.minecraft.tags.DamageTypeTags 'BYPASSES_INVULNERABILITY|BYPASSES_INVUL' 5
-          sig net.minecraft.world.damagesource.DamageSource ' is\(|getEntity|getLocalizedDeathMessage' 10
-          sig net.minecraft.resources.Identifier 'fromNamespaceAndPath|withDefaultNamespace' 5
-          sig net.minecraft.world.entity.Pose 'SWIMMING|SLEEPING|FALL_FLYING' 5
-          javap -cp "$CP" -p -c net.minecraft.world.entity.player.Player | grep -nE 'updatePlayerPose|forcedPose' | head -20
-          for c in net.minecraft.world.entity.Entity net.minecraft.world.entity.LivingEntity; do javap -cp "$CP" -p $c | grep -iE 'boolean is.*(Swimming|VisuallySwimming|Crawling)' ; done
       - name: publish output
         if: always()
         run: |
-          mkdir /tmp/out && cp /tmp/build.log /tmp/sig.log /tmp/out/ || true
+          mkdir /tmp/out && cp /tmp/build.log /tmp/out/ || true
           cd /tmp/out && git init -q -b ci-output && git add -A
           git -c user.name=ci -c user.email=ci@localhost commit -qm output
           git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-output

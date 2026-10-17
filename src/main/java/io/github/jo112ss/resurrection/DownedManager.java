@@ -7,9 +7,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import net.fabricmc.fabric.api.attachment.v1.AttachmentTarget;
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -20,7 +18,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.DamageTypeTags;
-import net.minecraft.world.InteractionHand;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
@@ -44,6 +41,8 @@ public final class DownedManager {
 	private static final Identifier JUMP_MODIFIER = Resurrection.id("downed_jump");
 
 	private static final Map<UUID, State> STATES = new HashMap<>();
+	/** Players we are killing ourselves, so the death event must not down them again. */
+	private static final Set<UUID> EXPIRING = new HashSet<>();
 
 	private DownedManager() {
 	}
@@ -63,12 +62,16 @@ public final class DownedManager {
 
 	/** @return true to let the player die normally, false if they went down instead. */
 	public static boolean onLethalDamage(ServerPlayer player, DamageSource source) {
+		if (EXPIRING.contains(player.getUUID())) {
+			// Our own call to die() after the timer ran out.
+			return true;
+		}
 		if (Resurrection.isDowned(player)) {
 			// Only damage that ignores invulnerability (void, /kill) reaches a downed player.
 			clear(player);
 			return true;
 		}
-		if (player.isSpectator() || player.isCreative() || holdsTotem(player) || !anyoneCanHelp(player)) {
+		if (player.isSpectator() || player.isCreative() || !anyoneCanHelp(player)) {
 			return true;
 		}
 		goDown(player, source);
@@ -94,6 +97,7 @@ public final class DownedManager {
 
 	public static void clearAll() {
 		STATES.clear();
+		EXPIRING.clear();
 	}
 
 	// ---------------------------------------------------------------- tick
@@ -238,7 +242,7 @@ public final class DownedManager {
 		player.setSprinting(false);
 		player.stopRiding();
 		player.setGlowingTag(true);
-		((AttachmentTarget) player).setAttached(Resurrection.DOWNED, true);
+		player.setData(Resurrection.DOWNED, true);
 		addModifier(player.getAttribute(Attributes.MOVEMENT_SPEED), SPEED_MODIFIER);
 		addModifier(player.getAttribute(Attributes.JUMP_STRENGTH), JUMP_MODIFIER);
 		STATES.put(player.getUUID(), new State(source));
@@ -275,13 +279,18 @@ public final class DownedManager {
 	private static void expire(ServerPlayer player, State state) {
 		clear(player);
 		player.setHealth(0.0f);
-		player.die(state.source);
+		EXPIRING.add(player.getUUID());
+		try {
+			player.die(state.source);
+		} finally {
+			EXPIRING.remove(player.getUUID());
+		}
 	}
 
 	/** Removes everything that marks a player as downed. */
 	private static void clear(ServerPlayer player) {
 		STATES.remove(player.getUUID());
-		((AttachmentTarget) player).removeAttached(Resurrection.DOWNED);
+		player.removeData(Resurrection.DOWNED);
 		player.setGlowingTag(false);
 		removeModifier(player.getAttribute(Attributes.MOVEMENT_SPEED), SPEED_MODIFIER);
 		removeModifier(player.getAttribute(Attributes.JUMP_STRENGTH), JUMP_MODIFIER);
@@ -292,15 +301,6 @@ public final class DownedManager {
 	private static boolean anyoneCanHelp(ServerPlayer player) {
 		for (ServerPlayer other : player.level().getServer().getPlayerList().getPlayers()) {
 			if (other != player && !other.isSpectator() && other.isAlive() && !Resurrection.isDowned(other)) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	private static boolean holdsTotem(ServerPlayer player) {
-		for (InteractionHand hand : InteractionHand.values()) {
-			if (player.getItemInHand(hand).has(DataComponents.DEATH_PROTECTION)) {
 				return true;
 			}
 		}
