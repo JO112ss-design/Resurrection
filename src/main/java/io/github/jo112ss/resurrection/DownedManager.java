@@ -32,7 +32,7 @@ public final class DownedManager {
 	/** How long a reviver must keep crouching beside them: 10 seconds. */
 	public static final int REVIVE_TICKS = 10 * 20;
 	/** XP levels the reviver spends. */
-	public static final int XP_COST_LEVELS = 20;
+	public static final int XP_COST_LEVELS = 10;
 	/** Max distance (blocks) between reviver and downed player. */
 	public static final double REVIVE_RANGE = 2.5;
 	/** How long a downed player holds sneak to give up and die right away: 3 seconds. */

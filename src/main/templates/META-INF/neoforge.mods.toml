@@ -41,7 +41,7 @@ authors="JO112ss-design"
 # The description text for the mod (multi line!) (#mandatory)
 description='''
 プレイヤーが死亡するとその場で発光して倒れ、180秒間ダウン状態になります。
-他のプレイヤーがそばで10秒しゃがみ続け、経験値20レベルを消費すると蘇生できます。
+他のプレイヤーがそばで10秒しゃがみ続け、経験値10レベルを消費すると蘇生できます。
 '''
 
 # The [[mixins]] block allows you to declare your mixin config to FML so that it gets loaded.
