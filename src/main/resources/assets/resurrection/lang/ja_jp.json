@@ -1,9 +1,15 @@
 {
 	"resurrection.downed.broadcast": "%s がダウンしました！ %s秒以内に蘇生してください",
-	"resurrection.downed.status": "ダウン中… 残り %s秒（仲間がそばでしゃがむと蘇生できます）",
+	"resurrection.downed.status": "ダウン中… 残り %s秒（仲間がそばでしゃがむと蘇生 / しゃがみ長押しで諦める）",
 	"resurrection.downed.being_revived": "%s が蘇生中… %s",
 	"resurrection.revive.progress": "%s を蘇生中… %s",
 	"resurrection.revive.hint": "しゃがみ続けて %s を蘇生（経験値 %sレベル消費）",
 	"resurrection.revive.not_enough_xp": "経験値が足りません（%sレベル必要）",
-	"resurrection.revive.success": "%s が %s に蘇生されました！"
+	"resurrection.revive.success": "%s が %s に蘇生されました！",
+	"resurrection.give_up.progress": "諦めています… %s",
+	"resurrection.revive.success_command": "%s が蘇生されました！",
+	"resurrection.command.down": "%s 人をダウン状態にしました",
+	"resurrection.command.down.none": "ダウンさせられるプレイヤーがいません（すでにダウン中？）",
+	"resurrection.command.revive": "%s 人を蘇生しました",
+	"resurrection.command.revive.none": "ダウン中のプレイヤーがいません"
 }

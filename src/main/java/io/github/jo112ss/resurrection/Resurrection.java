@@ -13,6 +13,7 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.attachment.AttachmentType;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
@@ -49,6 +50,7 @@ public class Resurrection {
 			}
 		});
 		bus.addListener((ServerStoppedEvent event) -> DownedManager.clearAll());
+		bus.addListener((RegisterCommandsEvent event) -> ResurrectionCommand.register(event.getDispatcher()));
 
 		// Downed players cannot fight, build or use items. These fire on both sides,
 		// and the attachment is synced, so the client doesn't even try.

@@ -22,6 +22,7 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import org.jspecify.annotations.Nullable;
 
 
 /** Server-side state and rules for downed players. */
@@ -34,6 +35,8 @@ public final class DownedManager {
 	public static final int XP_COST_LEVELS = 20;
 	/** Max distance (blocks) between reviver and downed player. */
 	public static final double REVIVE_RANGE = 2.5;
+	/** How long a downed player holds sneak to give up and die right away: 3 seconds. */
+	public static final int GIVE_UP_TICKS = 3 * 20;
 	/** Health a revived player comes back with (3 hearts). */
 	public static final float REVIVE_HEALTH = 6.0f;
 
@@ -52,6 +55,7 @@ public final class DownedManager {
 		int ticksLeft = DOWNED_TICKS;
 		UUID reviver;
 		int reviveTicks;
+		int giveUpTicks;
 
 		State(DamageSource source) {
 			this.source = source;
@@ -71,7 +75,7 @@ public final class DownedManager {
 			clear(player);
 			return true;
 		}
-		if (player.isSpectator() || player.isCreative() || !anyoneCanHelp(player)) {
+		if (player.isSpectator() || player.isCreative()) {
 			return true;
 		}
 		goDown(player, source);
@@ -93,6 +97,24 @@ public final class DownedManager {
 			// Server shutting down: don't punish anyone, just stand them back up.
 			clear(player);
 		}
+	}
+
+	/** Puts a player into the downed state without them dying first (test command). */
+	public static boolean forceDown(ServerPlayer player) {
+		if (Resurrection.isDowned(player) || !player.isAlive()) {
+			return false;
+		}
+		goDown(player, player.damageSources().generic());
+		return true;
+	}
+
+	/** Revives a downed player immediately, for free (test command). */
+	public static boolean forceRevive(ServerPlayer player) {
+		if (!STATES.containsKey(player.getUUID())) {
+			return false;
+		}
+		revive(player, null);
+		return true;
 	}
 
 	public static void clearAll() {
@@ -121,8 +143,27 @@ public final class DownedManager {
 				expire(downed, state);
 				continue;
 			}
-			tickRevive(downed, state, busyRevivers);
+			if (tickGiveUp(downed, state)) {
+				STATES.remove(entry.getKey());
+				expire(downed, state);
+				continue;
+			}
+			if (state.giveUpTicks == 0) {
+				tickRevive(downed, state, busyRevivers);
+			}
 		}
+	}
+
+	/** Holding sneak while downed gives up. @return true once the player has held it long enough. */
+	private static boolean tickGiveUp(ServerPlayer downed, State state) {
+		if (!downed.isShiftKeyDown()) {
+			state.giveUpTicks = 0;
+			return false;
+		}
+		state.giveUpTicks++;
+		downed.sendOverlayMessage(Component.translatable("resurrection.give_up.progress",
+				progressBar(state.giveUpTicks, GIVE_UP_TICKS)).withStyle(ChatFormatting.RED));
+		return state.giveUpTicks >= GIVE_UP_TICKS;
 	}
 
 	/** @return true if the player was revived this tick. */
@@ -255,7 +296,7 @@ public final class DownedManager {
 						.withStyle(ChatFormatting.GOLD), false);
 	}
 
-	private static void revive(ServerPlayer downed, ServerPlayer reviver) {
+	private static void revive(ServerPlayer downed, @Nullable ServerPlayer reviver) {
 		clear(downed);
 		downed.setHealth(Math.min(REVIVE_HEALTH, downed.getMaxHealth()));
 
@@ -265,7 +306,9 @@ public final class DownedManager {
 		level.playSound(null, downed.getX(), downed.getY(), downed.getZ(),
 				SoundEvents.TOTEM_USE, SoundSource.PLAYERS, 0.8f, 1.1f);
 		level.getServer().getPlayerList().broadcastSystemMessage(
-				Component.translatable("resurrection.revive.success", downed.getDisplayName(), reviver.getDisplayName())
+				(reviver == null
+						? Component.translatable("resurrection.revive.success_command", downed.getDisplayName())
+						: Component.translatable("resurrection.revive.success", downed.getDisplayName(), reviver.getDisplayName()))
 						.withStyle(ChatFormatting.GREEN), false);
 	}
 
@@ -297,15 +340,6 @@ public final class DownedManager {
 	}
 
 	// ---------------------------------------------------------------- helpers
-
-	private static boolean anyoneCanHelp(ServerPlayer player) {
-		for (ServerPlayer other : player.level().getServer().getPlayerList().getPlayers()) {
-			if (other != player && !other.isSpectator() && other.isAlive() && !Resurrection.isDowned(other)) {
-				return true;
-			}
-		}
-		return false;
-	}
 
 	private static boolean hasEnoughXp(ServerPlayer player) {
 		return player.isCreative() || player.experienceLevel >= XP_COST_LEVELS;

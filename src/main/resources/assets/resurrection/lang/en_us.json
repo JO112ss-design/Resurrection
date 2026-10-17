@@ -1,9 +1,15 @@
 {
 	"resurrection.downed.broadcast": "%s is down! Revive them within %s seconds",
-	"resurrection.downed.status": "Downed… %ss left (a teammate can crouch beside you to revive)",
+	"resurrection.downed.status": "Downed… %ss left (a teammate can crouch beside you to revive / hold sneak to give up)",
 	"resurrection.downed.being_revived": "%s is reviving you… %s",
 	"resurrection.revive.progress": "Reviving %s… %s",
 	"resurrection.revive.hint": "Keep crouching to revive %s (costs %s XP levels)",
 	"resurrection.revive.not_enough_xp": "Not enough XP (%s levels needed)",
-	"resurrection.revive.success": "%s was revived by %s!"
+	"resurrection.revive.success": "%s was revived by %s!",
+	"resurrection.give_up.progress": "Giving up… %s",
+	"resurrection.revive.success_command": "%s was revived!",
+	"resurrection.command.down": "Downed %s player(s)",
+	"resurrection.command.down.none": "No players could be downed (already down?)",
+	"resurrection.command.revive": "Revived %s player(s)",
+	"resurrection.command.revive.none": "No downed players to revive"
 }
