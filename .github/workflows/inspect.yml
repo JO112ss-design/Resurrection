@@ -1,6 +1,8 @@
 # Temporary: prints Minecraft API signatures needed during development. Safe to delete.
 name: inspect-api
 on: [workflow_dispatch]
+permissions:
+  contents: write
 
 jobs:
   inspect:
@@ -11,9 +13,11 @@ jobs:
         with:
           java-version: '25'
           distribution: 'microsoft'
-      - run: chmod +x ./gradlew && ./gradlew --no-configuration-cache compileJava
+      - name: build
+        run: chmod +x ./gradlew && (./gradlew --no-configuration-cache build 2>&1 || true) | tee /tmp/build.log
       - name: dump signatures
         run: |
+          exec > >(tee /tmp/sig.log) 2>&1
           find ~/.gradle "$GITHUB_WORKSPACE/.gradle" -name '*.jar' 2>/dev/null | grep -iE 'minecraft' | grep -viE 'sources|launchwrapper' | xargs -r ls -la
           JAR=$(find ~/.gradle "$GITHUB_WORKSPACE/.gradle" -name '*.jar' 2>/dev/null | grep -iE 'minecraft-(common|merged)' | grep -v sources | head -1)
           [ -z "$JAR" ] && JAR=$(find ~/.gradle "$GITHUB_WORKSPACE/.gradle" -name '*.jar' 2>/dev/null | grep -iE 'minecraft' | grep -v sources | xargs ls -S | head -1)
@@ -45,3 +49,10 @@ jobs:
           sig net.minecraft.world.entity.Pose 'SWIMMING|SLEEPING|FALL_FLYING' 5
           javap -cp "$CP" -p -c net.minecraft.world.entity.player.Player | grep -nE 'updatePlayerPose|forcedPose' | head -20
           for c in net.minecraft.world.entity.Entity net.minecraft.world.entity.LivingEntity; do javap -cp "$CP" -p $c | grep -iE 'boolean is.*(Swimming|VisuallySwimming|Crawling)' ; done
+      - name: publish output
+        if: always()
+        run: |
+          mkdir /tmp/out && cp /tmp/build.log /tmp/sig.log /tmp/out/ || true
+          cd /tmp/out && git init -q -b ci-output && git add -A
+          git -c user.name=ci -c user.email=ci@localhost commit -qm output
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-output
