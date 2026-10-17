@@ -18,7 +18,7 @@ jobs:
       - name: publish output
         if: always()
         run: |
-          mkdir /tmp/out && cp /tmp/build.log /tmp/out/ || true
+          mkdir /tmp/out && cp /tmp/build.log /tmp/out/ && cp build/libs/*.jar /tmp/out/ || true
           cd /tmp/out && git init -q -b ci-output && git add -A
           git -c user.name=ci -c user.email=ci@localhost commit -qm output
           git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-output
