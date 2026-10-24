@@ -22,12 +22,15 @@ jobs:
           ls /tmp/rpg/build/libs
       - name: boot server with both mods
         run: |
+          # CI only: force-load RPGmod's JobManager at startup so the compat mixin is applied and logged.
+          sed -i 's#bus.addListener((ServerStoppedEvent event) -> DownedManager.clearAll());#&\n\t\tbus.addListener((net.neoforged.neoforge.event.server.ServerStartedEvent e) -> { try { Class.forName("com.jo112ss.rpgmod.job.JobManager"); LOGGER.info("CI: JobManager loaded"); } catch (Throwable t) { LOGGER.error("CI: load failed", t); } });#' src/main/java/io/github/jo112ss/resurrection/Resurrection.java
+          grep -n "CI:" src/main/java/io/github/jo112ss/resurrection/Resurrection.java
           mkdir -p run/mods && cp /tmp/rpg/build/libs/rpgmod-*.jar run/mods/ && ls run/mods
           echo "eula=true" > run/eula.txt
           printf 'online-mode=false\nlevel-type=minecraft\\:flat\nspawn-protection=0\n' > run/server.properties
           ( sleep 5; while ! grep -q 'Done (' run/logs/latest.log 2>/dev/null; do sleep 5; done; echo stop ) \
             | timeout 900 ./gradlew --no-configuration-cache runServer -Dmixin.debug.verbose=true 2>&1 | tee /tmp/server.log | tail -40 || true
-          grep -iE 'RpgModJobManagerMixin|resurrection.mixins|Mixing .*resurrection|rpgmod.job.JobManager|Mixin.*(error|fail)|Exception' /tmp/server.log | head -60 > /tmp/mixin.log || true
+          grep -iE 'CI: |RpgModJobManagerMixin|resurrection.mixins|Mixing .*resurrection|rpgmod.job.JobManager|Mixin.*(error|fail)|Exception' /tmp/server.log | head -60 > /tmp/mixin.log || true
           cat /tmp/mixin.log
       - name: publish output
         if: always()
