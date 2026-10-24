@@ -1,0 +1,72 @@
+Downloading https://services.gradle.org/distributions/gradle-9.2.1-bin.zip
+............10%.............20%.............30%.............40%.............50%.............60%.............70%.............80%.............90%.............100%
+
+Welcome to Gradle 9.2.1!
+
+Here are the highlights of this release:
+ - Windows ARM support
+ - Improved publishing APIs
+ - Better guidance for dependency verification failures
+
+For more details see https://docs.gradle.org/9.2.1/release-notes.html
+
+Starting a Gradle Daemon (subsequent builds will be faster)
+
+> Configure project :
+Creating Minecraft artifacts without recompilation.
+
+> Task :createMinecraftArtifacts
+Loaded 135 artifacts from /home/runner/work/Resurrection/Resurrection/build/tmp/createMinecraftArtifacts/nfrt_artifact_manifest.properties
+[1m*** Started working on [4mdownloadManifest[23;0m[23;0m
+  ↓ https://piston-meta.mojang.com/mc/game/version_manifest_v2.json
+ [1m[92m✓[23;0m Completed [4mdownloadManifest[23;0m in 0.41s
+[1m*** Started working on [4mdownloadJson[23;0m[23;0m
+  ↓ https://piston-meta.mojang.com/mc/game/version_manifest_v2.json
+  ↓ https://piston-meta.mojang.com/v1/packages/61fff1316bd50312624a858bbb5eb18fa45208ed/26.3.json
+ [1m[92m✓[23;0m Completed [4mdownloadJson[23;0m in 0.06s
+[1m*** Started working on [4mdownloadClient[23;0m[23;0m
+[1m*** Started working on [4mdownloadServer[23;0m[23;0m
+  ↓ https://piston-data.mojang.com/v1/objects/e877b6a07acd633fb3bb475002175cec036e7b87/client.jar
+  ↓ https://piston-data.mojang.com/v1/objects/33680f5f2ac32864d6d7cf5e56a705fdb3e05f4c/server.jar
+ [1m[92m✓[23;0m Completed [4mdownloadClient[23;0m in 0.87s
+ [1m[92m✓[23;0m Completed [4mdownloadServer[23;0m in 1.00s
+[1m*** Started working on [4mpreProcessJar[23;0m[23;0m
+ ↳ Running external tool net.neoforged.installertools:installertools:4.0.17:fatjar
+ [1m[92m✓[23;0m Completed [4mpreProcessJar[23;0m in 3.05s
+[1m*** Started working on [4mbinaryPatch[23;0m[23;0m
+  [33mWARNING: [23;0mnet.neoforged.installertools:binarypatcher:4.0.17:fatjar is not present in the artifact manifest
+  ↓ https://maven.neoforged.net/releases/net/neoforged/installertools/binarypatcher/4.0.17/binarypatcher-4.0.17-fatjar.jar
+ ↳ Running external tool net.neoforged.installertools:binarypatcher:4.0.17:fatjar
+ [1m[92m✓[23;0m Completed [4mbinaryPatch[23;0m in 3.65s
+[1m*** Started working on [4mcopyUnpatchedClasses[23;0m[23;0m
+ [1m[92m✓[23;0m Completed [4mcopyUnpatchedClasses[23;0m in 3.01s
+[1m*** Started working on [4mapplyDevTransforms[23;0m[23;0m
+ ↳ Running external tool net.neoforged.installertools:installertools:4.0.12:fatjar
+ [1m[92m✓[23;0m Completed [4mapplyDevTransforms[23;0m in 3.25s
+Total runtime: 15.24s
+
+
+> Task :compileJava
+> Task :generateModMetadata
+> Task :processResources
+> Task :classes
+> Task :jarJar NO-SOURCE
+> Task :jar
+> Task :assemble
+> Task :compileTestJava NO-SOURCE
+> Task :processTestResources NO-SOURCE
+> Task :testClasses UP-TO-DATE
+> Task :test NO-SOURCE
+> Task :check UP-TO-DATE
+> Task :build
+
+[Incubating] Problems report is available at: file:///home/runner/work/Resurrection/Resurrection/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.2.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 1m 6s
+5 actionable tasks: 5 executed

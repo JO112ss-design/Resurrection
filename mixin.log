@@ -1,0 +1,12 @@
+[00:56:28] [main/DEBUG] [ne.ne.fm.lo.mo.ModFile/LOADING]: Found mixin config MixinConfig[config=resurrection.mixins.json, requiredMods=[], behaviorVersion=null]
+[00:56:30] [main/DEBUG] [mixin/]: Selecting config resurrection.mixins.json
+[00:56:30] [main/DEBUG] [mixin/]: Preparing resurrection.mixins.json (2)
+[00:56:31] [main/DEBUG] [mixin/]: Mixing PlayerMixin from resurrection.mixins.json into net.minecraft.world.entity.player.Player
+[00:56:31] [main/DEBUG] [mixin/]: resurrection.mixins.json:PlayerMixin from mod resurrection: Class version 69 required is higher than the class version supported by the current version of Mixin (JAVA_21 supports class version 65)
+[00:56:31] [main/DEBUG] [mixin/]: resurrection.mixins.json:PlayerMixin from mod resurrection->@Inject::resurrection$forceDownedPose(Lorg/spongepowered/asm/mixin/injection/callback/CallbackInfo;)V does use it's CallbackInfo
+[00:56:42] [Server thread/DEBUG] [mixin/]: Mixing compat.RpgModJobManagerMixin from resurrection.mixins.json into com.jo112ss.rpgmod.job.JobManager
+[00:56:42] [Server thread/DEBUG] [mixin/]: resurrection.mixins.json:compat.RpgModJobManagerMixin from mod resurrection: Class version 69 required is higher than the class version supported by the current version of Mixin (JAVA_21 supports class version 65)
+[00:56:42] [Server thread/DEBUG] [mixin/]: resurrection.mixins.json:compat.RpgModJobManagerMixin from mod resurrection->@Inject::resurrection$blockSkill(Lnet/minecraft/server/level/ServerPlayer;ILorg/spongepowered/asm/mixin/injection/callback/CallbackInfo;)V does use it's CallbackInfo
+[00:56:42] [Server thread/DEBUG] [mixin/]: resurrection.mixins.json:compat.RpgModJobManagerMixin from mod resurrection->@Inject::resurrection$blockStartCast(Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/item/ItemStack;ZLorg/spongepowered/asm/mixin/injection/callback/CallbackInfoReturnable;)V does use it's CallbackInfoReturnable
+[00:56:42] [Server thread/DEBUG] [mixin/]: resurrection.mixins.json:compat.RpgModJobManagerMixin from mod resurrection->@Inject::resurrection$blockReleaseCast(Lnet/minecraft/server/level/ServerPlayer;Lnet/minecraft/world/item/ItemStack;ILorg/spongepowered/asm/mixin/injection/callback/CallbackInfoReturnable;)V does use it's CallbackInfoReturnable
+[00:56:42] [Server thread/INFO] [io.gi.jo.re.Resurrection/]: CI: JobManager loaded
