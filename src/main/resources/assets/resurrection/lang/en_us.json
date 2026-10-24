@@ -11,5 +11,6 @@
 	"resurrection.command.down": "Downed %s player(s)",
 	"resurrection.command.down.none": "No players could be downed (already down?)",
 	"resurrection.command.revive": "Revived %s player(s)",
-	"resurrection.command.revive.none": "No downed players to revive"
+	"resurrection.command.revive.none": "No downed players to revive",
+	"resurrection.downed.no_skill": "You can't use skills while downed"
 }

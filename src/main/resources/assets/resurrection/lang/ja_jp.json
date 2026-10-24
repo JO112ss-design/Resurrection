@@ -11,5 +11,6 @@
 	"resurrection.command.down": "%s 人をダウン状態にしました",
 	"resurrection.command.down.none": "ダウンさせられるプレイヤーがいません（すでにダウン中？）",
 	"resurrection.command.revive": "%s 人を蘇生しました",
-	"resurrection.command.revive.none": "ダウン中のプレイヤーがいません"
+	"resurrection.command.revive.none": "ダウン中のプレイヤーがいません",
+	"resurrection.downed.no_skill": "ダウン中はスキルを使えません"
 }
