@@ -1,4 +1,4 @@
-# Temporary dev helper: builds and pushes the build log to the ci-output branch. Safe to delete.
+# Temporary dev helper: builds, boots a server with RPGmod, pushes logs to the ci-output branch. Safe to delete.
 name: dev-build-log
 on: [workflow_dispatch]
 permissions:
@@ -15,10 +15,25 @@ jobs:
           distribution: 'temurin'
       - name: build
         run: chmod +x ./gradlew && (./gradlew --no-configuration-cache build 2>&1 || true) | tee /tmp/build.log
+      - name: build RPGmod
+        run: |
+          git clone --depth 1 https://github.com/JO112ss-design/RPGmod /tmp/rpg
+          cd /tmp/rpg && chmod +x gradlew && (./gradlew --no-configuration-cache build 2>&1 || true) | tail -5
+          ls /tmp/rpg/build/libs
+      - name: boot server with both mods
+        run: |
+          mkdir -p run/mods && cp /tmp/rpg/build/libs/rpgmod-*.jar run/mods/ && ls run/mods
+          echo "eula=true" > run/eula.txt
+          printf 'online-mode=false\nlevel-type=minecraft\\:flat\nspawn-protection=0\n' > run/server.properties
+          ( sleep 5; while ! grep -q 'Done (' run/logs/latest.log 2>/dev/null; do sleep 5; done; echo stop ) \
+            | timeout 900 ./gradlew --no-configuration-cache runServer -Dmixin.debug.verbose=true 2>&1 | tee /tmp/server.log | tail -40 || true
+          grep -iE 'RpgModJobManagerMixin|resurrection.mixins|Mixing .*resurrection|rpgmod.job.JobManager|Mixin.*(error|fail)|Exception' /tmp/server.log | head -60 > /tmp/mixin.log || true
+          cat /tmp/mixin.log
       - name: publish output
         if: always()
         run: |
           mkdir /tmp/out && cp /tmp/build.log /tmp/out/ && cp build/libs/*.jar /tmp/out/ || true
+          cp /tmp/server.log /tmp/mixin.log /tmp/out/ || true
           cd /tmp/out && git init -q -b ci-output && git add -A
           git -c user.name=ci -c user.email=ci@localhost commit -qm output
           git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-output
