@@ -37,6 +37,11 @@ public final class DownedManager {
 	public static final double REVIVE_RANGE = 2.5;
 	/** How long a downed player holds sneak to give up and die right away: 3 seconds. */
 	public static final int GIVE_UP_TICKS = 3 * 20;
+	/**
+	 * Movement speed while downed, as a fraction of normal speed (on top of the vanilla crawling slowdown).
+	 * 0.5 ≈ 0.6 blocks/second: enough to crawl out of lava or fire, not enough to run away.
+	 */
+	public static final double DOWNED_SPEED = 0.5;
 	/** Health a revived player comes back with (3 hearts). */
 	public static final float REVIVE_HEALTH = 6.0f;
 
@@ -56,6 +61,7 @@ public final class DownedManager {
 		UUID reviver;
 		int reviveTicks;
 		int giveUpTicks;
+		boolean frozen;
 
 		State(DamageSource source) {
 			this.source = source;
@@ -189,6 +195,8 @@ public final class DownedManager {
 					2, 0.4, 0.1, 0.4, 0.0);
 		}
 
+		setFrozen(downed, state, reviver != null);
+
 		if (reviver == null) {
 			if (time % 10 == 0) {
 				int seconds = (state.ticksLeft + 19) / 20;
@@ -284,8 +292,8 @@ public final class DownedManager {
 		player.stopRiding();
 		player.setGlowingTag(true);
 		player.setData(Resurrection.DOWNED, true);
-		addModifier(player.getAttribute(Attributes.MOVEMENT_SPEED), SPEED_MODIFIER);
-		addModifier(player.getAttribute(Attributes.JUMP_STRENGTH), JUMP_MODIFIER);
+		setMultiplier(player.getAttribute(Attributes.MOVEMENT_SPEED), SPEED_MODIFIER, DOWNED_SPEED);
+		setMultiplier(player.getAttribute(Attributes.JUMP_STRENGTH), JUMP_MODIFIER, 0.0);
 		STATES.put(player.getUUID(), new State(source));
 
 		ServerLevel level = player.level();
@@ -356,11 +364,19 @@ public final class DownedManager {
 		return true;
 	}
 
-	private static void addModifier(AttributeInstance attribute, Identifier id) {
+	/** Scales the attribute's total value to {@code multiplier} (0 = none, 1 = unchanged). */
+	private static void setMultiplier(AttributeInstance attribute, Identifier id, double multiplier) {
 		if (attribute != null) {
-			// -100% of the total value: the downed player stays where they fell.
 			attribute.addOrUpdateTransientModifier(
-					new AttributeModifier(id, -1.0, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
+					new AttributeModifier(id, multiplier - 1.0, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
+		}
+	}
+
+	/** Holds the downed player still while someone is reviving them, so they can't crawl out of range. */
+	private static void setFrozen(ServerPlayer player, State state, boolean frozen) {
+		if (state.frozen != frozen) {
+			state.frozen = frozen;
+			setMultiplier(player.getAttribute(Attributes.MOVEMENT_SPEED), SPEED_MODIFIER, frozen ? 0.0 : DOWNED_SPEED);
 		}
 	}
 
